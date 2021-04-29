@@ -1,0 +1,42 @@
+name: Publish Docker image
+on:
+  # push:
+  #   branches:
+  #     - 'main'
+  release:
+    types: [published]
+
+jobs:
+  push_to_registry:
+    name: Push Docker image to Docker Hub
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v2
+      - name: Login to DockerHub
+        uses: docker/login-action@v1 
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Prune
+        run: |
+          docker system df
+          docker image prune --force
+          docker system df
+      - name: Build docker image
+        id: docker_build
+        uses: docker/build-push-action@v1
+      - name: Image digest
+        run: echo ${{ steps.docker_build.outputs.digest }}
+      - name: Get tags
+        id: docker_tags
+        run: |
+          echo "::set-output name=tags::$(./version.sh ${{ steps.docker_build.outputs.digest }})"
+      # - name: Push to Docker Hub
+      #   uses: docker/build-push-action@v1
+      #   with:
+      #     push: true
+      #     username: ${{ secrets.DOCKER_USERNAME }}
+      #     password: ${{ secrets.DOCKER_PASSWORD }}
+      #     repository: srzzumix/oneapi-hpckit
+      #     tags: ${{ steps.docker_tags.outputs.tags }}
